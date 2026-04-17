@@ -1,5 +1,3 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 export interface StoredComponent {
@@ -11,35 +9,16 @@ export interface StoredComponent {
 
 type ComponentStore = Record<string, StoredComponent>;
 
-const dataDir = path.join(process.cwd(), "data");
-const dataFile = path.join(dataDir, "components.json");
-
-async function ensureDataFile() {
-  await fs.mkdir(dataDir, { recursive: true });
-
-  try {
-    await fs.access(dataFile);
-  } catch {
-    await fs.writeFile(dataFile, JSON.stringify({}), "utf-8");
-  }
+declare global {
+  var __websiteEditorStore: ComponentStore | undefined;
 }
 
-async function readStore(): Promise<ComponentStore> {
-  await ensureDataFile();
-
-  const raw = await fs.readFile(dataFile, "utf-8");
-
-  try {
-    const parsed = JSON.parse(raw) as ComponentStore;
-    return parsed;
-  } catch {
-    return {};
+function getStore(): ComponentStore {
+  if (!globalThis.__websiteEditorStore) {
+    globalThis.__websiteEditorStore = {};
   }
-}
 
-async function writeStore(store: ComponentStore) {
-  await ensureDataFile();
-  await fs.writeFile(dataFile, JSON.stringify(store, null, 2), "utf-8");
+  return globalThis.__websiteEditorStore;
 }
 
 export async function createComponent(source: string): Promise<StoredComponent> {
@@ -51,15 +30,14 @@ export async function createComponent(source: string): Promise<StoredComponent> 
     updatedAt: now,
   };
 
-  const store = await readStore();
+  const store = getStore();
   store[created.id] = created;
-  await writeStore(store);
 
   return created;
 }
 
 export async function getComponent(id: string): Promise<StoredComponent | null> {
-  const store = await readStore();
+  const store = getStore();
 
   return store[id] ?? null;
 }
@@ -68,7 +46,7 @@ export async function updateComponent(
   id: string,
   source: string,
 ): Promise<StoredComponent | null> {
-  const store = await readStore();
+  const store = getStore();
   const existing = store[id];
 
   if (!existing) {
@@ -82,7 +60,6 @@ export async function updateComponent(
   };
 
   store[id] = updated;
-  await writeStore(store);
 
   return updated;
 }

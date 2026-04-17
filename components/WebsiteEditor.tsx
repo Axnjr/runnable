@@ -173,11 +173,11 @@ export function WebsiteEditor({
         throw new Error("Failed to create component record.");
       }
 
-      const data = (await response.json()) as StoredComponentResponse;
-      setComponentId(data.id);
-      setComponentIdInput(data.id);
-      persistLastComponentId(data.id);
-      return data.id;
+      const created = (await response.json()) as StoredComponentResponse;
+      setComponentId(created.id);
+      setComponentIdInput(created.id);
+      persistLastComponentId(created.id);
+      return created.id;
     },
     [componentId],
   );
@@ -204,7 +204,6 @@ export function WebsiteEditor({
         }
 
         const targetId = await ensureComponentRecord(nextSerialized);
-
         const response = await fetch(`/component/${targetId}`, {
           method: "PUT",
           headers: {
@@ -216,6 +215,11 @@ export function WebsiteEditor({
         if (!response.ok) {
           throw new Error("Failed to sync component changes.");
         }
+
+        const saved = (await response.json()) as StoredComponentResponse;
+        setComponentId(saved.id);
+        setComponentIdInput(saved.id);
+        persistLastComponentId(saved.id);
 
         setSaveMode("saved");
         setHasEdits(false);
@@ -262,10 +266,10 @@ export function WebsiteEditor({
       try {
         const response = await fetch(`/preview/${lastId}`);
         if (!response.ok) {
-          throw new Error("Last component was not found.");
+          throw new Error("Unable to restore last component.");
         }
-
         const data = (await response.json()) as StoredComponentResponse;
+
         if (cancelled) {
           return;
         }
@@ -326,8 +330,8 @@ export function WebsiteEditor({
       if (!response.ok) {
         throw new Error("Component id not found.");
       }
-
       const data = (await response.json()) as StoredComponentResponse;
+
       setSourceInput(data.source);
       setComponentId(data.id);
       setComponentIdInput(data.id);
